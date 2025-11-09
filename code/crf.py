@@ -65,7 +65,14 @@ class ConditionalRandomField(HiddenMarkovModel):
         # For a unigram model, self.WA should just have a single row:
         # that model has fewer parameters.
 
-        raise NotImplementedError   # you fill this in!
+        # you fill this in!
+        k = len(self.tagset)
+        v = len(self.vocab)
+        if self.unigram:
+            self.WA = torch.randn(1, k) * 0.01  # unigram transition potentials
+        else:
+            self.WA = torch.randn(k, k) * 0.01  # bigram transition potentials
+        self.WB = torch.randn(k, v) * 0.01      # emission potentials
         self.updateAB()   # compute potential matrices
 
     def updateAB(self) -> None:
@@ -78,7 +85,15 @@ class ConditionalRandomField(HiddenMarkovModel):
         # so that the forward-backward code will still work.
         # See init_params() in the parent class for discussion of this point.
         
-        raise NotImplementedError   # you fill this in!
+        # you fill this in!
+        k = len(self.tagset)
+        v = len(self.vocab)
+        if self.unigram:
+            tag_pots = torch.exp(self.WA)  # (1,k)
+            self.A = tag_pots.repeat(k, 1)  # bigram transition potentials from unigram parameters (k,k)
+        else:
+            self.A = torch.exp(self.WA)     # bigram transition potentials (k,k)
+        self.B = torch.exp(self.WB)         # emission potentials (k,v)
 
     @override
     def train(self,
@@ -202,7 +217,12 @@ class ConditionalRandomField(HiddenMarkovModel):
         # in order to compute the normalizing constant for this sentence.
         desup_isent = self._integerize_sentence(sentence.desupervise(), corpus)
 
-        raise NotImplementedError   # you fill this in!
+        # you fill this in!
+        # numerator: log \tilde{p}(t,w)
+        log_unnorm = super().logprob(sentence, corpus)
+        # denominator: log \tilde{p}(w) = log sum_t \tilde{p}(t,w)
+        log_z = super().logprob(sentence.desupervise(), corpus)
+        return log_unnorm - log_z
 
     def accumulate_logprob_gradient(self, sentence: Sentence, corpus: TaggedCorpus) -> None:
         """Add the gradient of self.logprob(sentence, corpus) into a total minibatch
@@ -221,7 +241,8 @@ class ConditionalRandomField(HiddenMarkovModel):
         isent_desup = self._integerize_sentence(sentence.desupervise(), corpus)
 
         # Hint: use the mult argument to E_step().
-        raise NotImplementedError   # you fill this in!
+        self.E_step(isent_sup, mult=1.0)      # to get observed counts
+        self.E_step(isent_desup, mult=-1.0)   # to get expected counts
         
     def _zero_grad(self):
         """Reset the gradient accumulator to zero."""
@@ -237,7 +258,13 @@ class ConditionalRandomField(HiddenMarkovModel):
         # is only a vector of tag unigram potentials (even though self.A_counts
         # is a still a matrix of tag bigram potentials).
         
-        raise NotImplementedError   # you fill this in!
+        # you fill this in!
+        if self.unigram:
+            grad_WA = self.A_counts.sum(dim=0, keepdim=True)  # sum over rows to get unigram counts (1,k)
+            self.WA += lr * grad_WA
+        else:
+            grad_WA += lr*self.A_counts  # bigram counts (k,k)
+        self.WB += lr*self.B_counts  # emission counts (k,v)
         
     def reg_gradient_step(self, lr: float, reg: float, frac: float):
         """Update the parameters using the gradient of our regularizer.
@@ -251,7 +278,14 @@ class ConditionalRandomField(HiddenMarkovModel):
         # because some of the weights are infinite and inf - inf = nan. 
         # Instead, you want something like w *= 0.9 or equivalently w.mul_(0.9).
 
-        raise NotImplementedError   # you fill this in!
+        # you fill this in!
+        decay_factor = 1 - lr * reg * frac
+        if decay_factor < 0:
+            self.WA[torch.isfinite(self.WA)] = 0.0
+            self.WB[torch.isfinite(self.WB)] = 0.0
+        else:
+            self.WA[torch.isfinite(self.WA)] *= decay_factor
+            self.WB[torch.isfinite(self.WB)] *= decay_factor
     
         # Note: Our train() implementation chooses to call this method *after*
         # each minibatch update, which results in subtracting a multiple of the
