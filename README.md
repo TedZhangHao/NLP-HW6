@@ -3,8 +3,8 @@
 i: The new prob is 0.491
 After changing, $p(\text{Day 1} = H | \text{Observations for Day 1-3})$ is roughly 0.5
 Because in the default model, the emission probabilities favor larger numbers of ice creams on hot days, this means that the only two plausible weather sequences are HHH and CHH, other paths (e.g. HCH, CHH ...) are have much smaller probability.
-So, $p(\text{Day 1} = H | \text{Observations}) \approx \frac{p(HHH,w)}{p(HHHH,w) + p(CHH,w)}$
-After replacing Day 1’s observation with 1 ice cream, the term penalizes the HHH path and boosts the CHH path. As a result, the two paths contribute nearly equal total probability in terms of likelihood: $p(HHH,w) \approx p(CHH,w)$
+So, $p(\text{Day 1} = H | \text{Observations}) \approx \frac{p(HHH,w)}{p(HHH,w) + p(CHH,w)}$
+After replacing Day 1’s observation with 1 ice cream, the term penalizes the HHH path and boosts the CHH path. As a result, the two paths contribute nearly equal total probability: $p(HHH,w) \approx p(CHH,w)$
 So, the new prob is roughly 0.5.
 
 ii: After changing, $p(\text{Day 1} = H)$ has reduced from roughly 0.9 to about 0.5 as in question (a)i. the uncertainty on Day 1 propagates forward through $p(H|C)$ and $p(H|H)$. The forward probability for Day 2 being Hot becomes a weighted combination of these two possible starting points:
