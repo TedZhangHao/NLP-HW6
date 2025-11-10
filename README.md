@@ -3,8 +3,8 @@
 i: The new prob is 0.491
 After changing, $p(\text{Day 1} = H | \text{Observations for Day 1-3})$ is roughly 0.5
 Because in the default model, the emission probabilities favor larger numbers of ice creams on hot days, this means that the only two plausible weather sequences are HHH and CHH, other paths (e.g. HCH, CHH ...) are have much smaller probability.
-So, $p(\text{Day 1} = H | \text{Observations}) \approx \frac{p(HHHH,w)}{p(HHHH,w) + p(CHH,w)}$
-After replacing Day 1’s observation with 1 ice cream, the term penalizes the HHH path and boosts the CHH path. As a result, the two paths contribute nearly equal total probability: $p(HHHH,w) \approx p(CHH,w)$
+So, $p(\text{Day 1} = H | \text{Observations}) \approx \frac{p(HHH,w)}{p(HHHH,w) + p(CHH,w)}$
+After replacing Day 1’s observation with 1 ice cream, the term penalizes the HHH path and boosts the CHH path. As a result, the two paths contribute nearly equal total probability in terms of likelihood: $p(HHH,w) \approx p(CHH,w)$
 So, the new prob is roughly 0.5.
 
 ii: After changing, $p(\text{Day 1} = H)$ has reduced from roughly 0.9 to about 0.5 as in question (a)i. the uncertainty on Day 1 propagates forward through $p(H|C)$ and $p(H|H)$. The forward probability for Day 2 being Hot becomes a weighted combination of these two possible starting points:
@@ -36,7 +36,7 @@ iii:After 10 iterations, $p(1 | H)$ remains 0. it never increases.
 
 Expectation step (E-step):
 During the forward-backward computation, every path in the trellis that would have required a Hot to (1 ice cream) emission now has probability 0.
-Therefore, none of the $2^33$ possible state sequences that include such emissions contribute any probability mass.
+Therefore, none of the $2^{33}$ possible state sequences that include such emissions contribute any probability mass.
 As a result, the expected (fractional) count for the pair (H, 1) is 0.
 
 Maximization step (M-step):
