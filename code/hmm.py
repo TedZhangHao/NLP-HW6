@@ -80,7 +80,12 @@ class HiddenMarkovModel:
             raise ValueError("tagset should contain both BOS_TAG and EOS_TAG")
         assert self.eos_t is not None    # we need this to exist
         self.eye: Tensor = torch.eye(self.k)  # identity matrix, used as a collection of one-hot tag vectors
-
+        self.alpha = None
+        self.log_A = None
+        self.log_B = None
+        self.A_counts = None
+        self.B_counts = None
+        self.log_Z = None
         self.init_params()     # create and initialize model parameters
  
     def init_params(self) -> None:
@@ -164,8 +169,12 @@ class HiddenMarkovModel:
         # Don't forget to respect the settings self.unigram and λ.
         # See the init_params() method for a discussion of self.A in the
         # unigram case.
-        
-        raise NotImplementedError   # you fill this in!
+        if not self.unigram:
+            self.A_counts += λ      # smooth the counts
+            self.A = self.A_counts / self.A_counts.sum(dim=1, keepdim=True)  # normalize into prob distributions
+            self.A[:, self.bos_t] = 0
+        else:
+            pass
 
     def _zero_counts(self):
         """Set the expected counts to 0.  
@@ -305,9 +314,32 @@ class HiddenMarkovModel:
             # Note: once you have this working on the ice cream data, you may
             # have to modify this design slightly to avoid underflow on the
             # English tagging data. See section C in the reading handout.
+        log_A = torch.log(self.A+1e-12)
+        log_B = torch.log(self.B+1e-12)
+        self.log_A = log_A
+        self.log_B = log_B
+        n = len(isent)
+        log_alpha = [torch.full((self.k,), -float("inf")) for _ in range(n)]
+        log_alpha[0] = torch.log(alpha[0])
+        # k = [0.0 for _ in isent] 
         
-        raise NotImplementedError   # you fill this in!
+        
+        for j in range(1, n):
+            word_id = isent[j][0]
+            log_alpha[j] = torch.logsumexp(log_alpha[j-1].unsqueeze(1) + log_A, dim=0) 
+            if word_id < self.V :
+                log_emiss = log_B[:, word_id]
+            else:
+                log_emiss = torch.full((self.k,), -float("inf"), device=log_B.device)
+            if j < n-1:
+                 log_alpha[j] += log_emiss
+            # k[j] = torch.max(alpha[j])
+        # log_alpha[-1] = torch.logsumexp(log_alpha[n-2].unsqueeze(1) + log_A[:, self.eos_t], dim=0) 
 
+        self.alpha = log_alpha  # remember for backward pass
+        # log_Z = torch.logsumexp(log_alpha[-1], dim=0) #+ torch.sum(torch.log(torch.tensor(k[-1])))
+        log_Z = log_alpha[-1][self.eos_t]
+        self.log_Z = log_Z      # remember for backward pass
         return log_Z
 
     @typechecked
@@ -324,9 +356,41 @@ class HiddenMarkovModel:
         # Pre-allocate beta just as we pre-allocated alpha.
         beta = [torch.empty(self.k) for _ in isent]
         beta[-1] = self.eye[self.eos_t]  # vector that is one-hot at EOS_TAG
-       
-        raise NotImplementedError   # you fill this in!
+        n = len(isent)
+        log_beta = [torch.full((self.k,), -float("inf")) for _ in range(n)]
+        log_beta[-1] = torch.log(beta[-1])
+        for j in range(n-1, 0, -1):
+            if j == n - 1:
+            # 只做一次转移：beta[n-2](i) = sum_k A[i,k] * beta[n-1](k)
+                tmp = self.log_A + log_beta[j].unsqueeze(0)   # (k,k)
+                log_beta[j - 1] = torch.logsumexp(tmp, dim=1)
 
+                # xi_{n-1}(i,k) = p(tag_{n-2}=i, tag_{n-1}=k | x)，无 emission 项
+                xi = torch.exp(
+                    self.alpha[j - 1].unsqueeze(1) +
+                    self.log_A +
+                    log_beta[j].unsqueeze(0) -
+                    self.log_Z
+                )
+                self.A_counts += mult * xi
+                continue
+            word_id = isent[j][0]   
+            if word_id < self.V:
+                log_B_col = self.log_B[:, word_id]
+            else:
+                log_B_col = torch.full((self.k,), -float("inf"), device=self.log_B.device)
+                
+            gamma = torch.exp(self.alpha[j] + log_beta[j] - self.log_Z)
+            if word_id < self.V:
+                self.B_counts[:, word_id] += mult * gamma
+            log_beta[j-1] = torch.logsumexp(self.log_A + log_B_col.unsqueeze(0) + log_beta[j].unsqueeze(0), dim=1)
+            self.A_counts += mult * torch.exp(self.alpha[j-1].unsqueeze(1) + self.log_A + log_B_col.unsqueeze(0) + log_beta[j].unsqueeze(0) - self.log_Z)
+        self.A_counts[self.A_counts < 1e-8] = 0.0
+        self.B_counts[self.B_counts < 1e-8] = 0.0
+
+        log_Z_backward =log_beta[0][self.bos_t]
+        # log_Z_backward = torch.logsumexp(log_beta[0], dim=0)
+        assert torch.isclose(log_Z_backward, self.log_Z, atol=1e-3)
         return log_Z_backward
 
     def viterbi_tagging(self, sentence: Sentence, corpus: TaggedCorpus) -> Sentence:
@@ -346,13 +410,40 @@ class HiddenMarkovModel:
         # conforms to the type annotations ...)
 
         isent = self._integerize_sentence(sentence, corpus)
-
+        n = len(isent)
         # See comments in log_forward on preallocation of alpha.
         alpha        = [torch.empty(self.k)                  for _ in isent]  
         backpointers = [torch.empty(self.k, dtype=torch.int) for _ in isent]
         tags: List[int]    # you'll put your integerized tagging here
 
-        raise NotImplementedError   # you fill this in!
+        alpha[0] = self.eye[self.bos_t]  # vector that is one-hot at BOS_TAG
+
+            # Note: once you have this working on the ice cream data, you may
+            # have to modify this design slightly to avoid underflow on the
+            # English tagging data. See section C in the reading handout.
+        log_A = torch.log(self.A+1e-12)
+        log_B = torch.log(self.B+1e-12)
+        self.log_A = log_A
+        self.log_B = log_B
+        log_alpha = [torch.full((self.k,), -float("inf")) for _ in range(n)]
+        log_alpha[0] = torch.log(alpha[0])
+        # k = [0.0 for _ in isent] 
+
+        for j in range(1, n-1):
+            temp = log_alpha[j-1].unsqueeze(1) + log_A 
+            log_alpha[j], backpointers[j] = torch.max(temp, dim=0)
+            # print(" isent[j]:",isent[j])
+            # backpointers[j] = torch.argmax(temp, dim=0)
+            log_alpha[j] += log_B[:, isent[j][0]] # word, tag
+        temp = log_alpha[n-2].unsqueeze(1) + log_A[:, self.eos_t]
+        log_alpha[-1], backpointers[-1] = torch.max(temp, dim=0)
+            
+            # k[j] = torch.max(alpha[j])
+        tags = [0 for _ in range(n)]
+        alpha[-1] = self.eye[self.eos_t]
+        tags[-1] = torch.argmax(alpha[-1]).item()
+        for j in range(n-1, 0, -1):
+                tags[j-1] = backpointers[j][tags[j]].item()
 
         # Make a new tagged sentence with the old words and the chosen tags
         # (using self.tagset to deintegerize the chosen tags).

@@ -1,17 +1,19 @@
 ## Q1：
-(a) 
-i: The new prob is 0.491
+#### (a) 
+##### i: 
+The new prob is 0.491
 After changing, $p(\text{Day 1} = H | \text{Observations for Day 1-3})$ is roughly 0.5
 Because in the default model, the emission probabilities favor larger numbers of ice creams on hot days, this means that the only two plausible weather sequences are HHH and CHH, other paths (e.g. HCH, CHH ...) are have much smaller probability.
 So, $p(\text{Day 1} = H | \text{Observations}) \approx \frac{p(HHH,w)}{p(HHH,w) + p(CHH,w)}$
 After replacing Day 1’s observation with 1 ice cream, the term penalizes the HHH path and boosts the CHH path. As a result, the two paths contribute nearly equal total probability: $p(HHH,w) \approx p(CHH,w)$
 So, the new prob is roughly 0.5.
 
-ii: After changing, $p(\text{Day 1} = H)$ has reduced from roughly 0.9 to about 0.5 as in question (a)i. the uncertainty on Day 1 propagates forward through $p(H|C)$ and $p(H|H)$. The forward probability for Day 2 being Hot becomes a weighted combination of these two possible starting points:
+##### ii
+After changing, $p(\text{Day 1} = H)$ has reduced from roughly 0.9 to about 0.5 as in question (a)i. the uncertainty on Day 1 propagates forward through $p(H|C)$ and $p(H|H)$. The forward probability for Day 2 being Hot becomes a weighted combination of these two possible starting points:
 $$p(t_2 = H) \propto p(t_1 = H)p(H|H) + p(t_1 = C)p(H|C)$$
 Since $p(t_1 = H)$ dropped, $p(\text{Day 1} = H)$ has also slightly dropped rom about 0.977 to roughly 0.918 in the initial reconstruction.
 
-iii:
+##### iii:
 After 10 iterations of re-estimation:
 Day 1: 
 p(H) rises from nearly 0 to about 0.557.
@@ -20,19 +22,21 @@ Day 2:
 p(H) remains very high (0.993), since its “3 ice cream” observation still overwhelmingly indicates a hot day.
 Thus the EM process smooths the probabilities, slightly recovering the Day 1 hot probability while keeping Day 2 confidently hot.
 
-(b)
-i: From the two graphs, the most noticeable difference appears between Days 11–14.
+#### (b)
+##### i
+From the two graphs, the most noticeable difference appears between Days 11–14.
 In the original graph (before changing $p(1 | H)$), the model still considers these days to be mostly hot, with $p(H)$ staying around 0.7–0.9 even though ice-cream consumption temporarily drops to 1 or 2.
 After setting p(1 | H)=0 and restricting $p(2 | H)=0.3$, the model can no longer explain low ice-cream counts under hot weather.
 As a result, during Days 11–14 the pink $p(H)$ line collapses to nearly 0, marking these as cold days.
 This sharp dip contrasts with the earlier smooth curve and demonstrates how the strong prior (“never eat 1 ice cream on a hot day”) forces the reconstruction to switch abruptly from Hot to Cold in that mid-period.
 After Day 14, when the ice-cream counts rise again, $p(H)$ recovers quickly to values near 1.
 
-ii:
+##### ii
 The results do not change after 10 iterations because the hard constraint p(1 | H)=0 prevents any further parameter updates.
 The EM algorithm has effectively converged immediately—the model is already consistent with that fixed rule.
 
-iii:After 10 iterations, $p(1 | H)$ remains 0. it never increases.
+##### iii
+After 10 iterations, $p(1 | H)$ remains 0. it never increases.
 
 Expectation step (E-step):
 During the forward-backward computation, every path in the trellis that would have required a Hot to (1 ice cream) emission now has probability 0.
@@ -45,13 +49,15 @@ $$p(w|t) = \frac{\text{expected} count(t,w)}{\text{expected} count(t)}$$
 Since the expected count for (H, 1) = 0, the update yields $p(1∣H)=0$ again.
 This repeats on every iteration: each E-step sees zero paths using (H, 1), each M-step keeps it 0.
 
-(c)
-i: Intuitively, $\beta_{bos}(0)$ represents “the probability of generating the entire sentence starting from the beginning-of-sentence tag.”
+#### (c)
+##### i
+Intuitively, $\beta_{bos}(0)$ represents “the probability of generating the entire sentence starting from the beginning-of-sentence tag.”
 Just as the forward algorithm ends with $\alpha_{eos}(n+1)$, the backward algorithm begins with $\beta_{bos}(0)$.
 Both values equal the overall sentence probability $p(w)$.
 $$p(w_1,..,w_n)=\alpha_{eos}(n+1)=\beta_{bos}(0)$$
 
-ii: Meaning of an H constituent:
+##### ii
+Meaning of an H constituent:
 It represents the part of the sentence that is generated while the model is in the Hot state.
 Probability of H to 1 C:
 $p_B(1|H)*p_A(C|H)$: emit "1" while in Hot, then transition to Cold.
@@ -62,3 +68,8 @@ $p_A(eos|H)$: terminate the Hot sequence by going to the end-of-sentence symbol.
 Why prefer the more complex grammar (with EH/EC):
 It separates emission and transition into different rules, making the structure clearer and the inside-style probability computations easier to organize.
 
+## Q2:
+#### (a)
+Because $\alpha_{BOS}(0)$ and $\beta_{EOS}(b)$ are the boundary, and setting them as 1 represents that the sentence starting with BOS has possibility of 1 and the sentence ending with EOS has possibility of 1 in respective. These boundary conditions are suppose to be true not just because they are meant to be in this way theoretically but also as base cases for forward and backward algorithm to propagate with initials.
+
+#### (b)
