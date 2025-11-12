@@ -71,6 +71,15 @@ It separates emission and transition into different rules, making the structure 
 
 ## Q2:
 #### (a)
-Because $\alpha_{BOS}(0)$ and $\beta_{EOS}(b)$ are the boundary, and setting them as 1 represents that the sentence starting with BOS has possibility of 1 and the sentence ending with EOS has possibility of 1 in respective. These boundary conditions are suppose to be true not just because they are meant to be in this way theoretically but also as base cases for forward and backward algorithm to propagate with initials.
+Because $\alpha_{BOS}(0)$ and $\beta_{EOS}(b)$ are the boundary, and setting them as 1 represents that the valid tag sentence must start from BOS state and end in EOS state. These boundary conditions are suppose to be true not just because they are meant to be in this way theoretically but also as base cases for forward and backward algorithm to propagate with initials and have a neutral multiplicative factor. 
 
 #### (b)
+This happens because the raw file is unlabled, and the model can freely marginalize over the tags, matching the data distributaion it was trained on. While the dec file contains fixed labels that may differ in distribution and constrain the model more strictly. Therefore, the perplexity (surprisal) on the dev file is higher. 
+
+The dev perplexity is mmore important, since it reflects the model's generalization ability to unseen labeled data rather than how well it explains its own training distribution.
+
+#### (c)
+Because using words from dev to construct V may introduce data leakage. This information leakage might give model unfair prior knowledge of test data, which makes model cheat.
+
+#### (d)
+It will help the the overall tagging accuracy

@@ -292,6 +292,156 @@ class HiddenMarkovModel:
         # probability of all paths (up to floating-point error).
         assert torch.isclose(log_Z_forward, log_Z_backward), f"backward log-probability {log_Z_backward} doesn't match forward log-probability {log_Z_forward}!"
 
+    # @typechecked
+
+    # def forward_pass(self, isent: IntegerizedSentence) -> TorchScalar:
+    #     """
+    #     前向算法：log-space + 矩阵形式。
+    #     isent: list[(word_id, tag_id)]，带 BOS/EOS。
+    #     """
+    #     n = len(isent)
+    #     # log-space 参数
+    #     logA = torch.log(self.A + 1e-12)           # (k, k)
+    #     logB = torch.log(self.B + 1e-12)           # (k, V)
+
+    #     # alpha[j, t] = log p(prefix 到 j，且 tag_j = t)
+    #     alpha = torch.full((n, self.k), -inf)
+
+    #     # 位置 0 是 BOS
+    #     _, tag0 = isent[0]
+    #     alpha[0, :] = -inf
+    #     alpha[0, tag0] = 0.0   # log(1)
+
+    #     eos_w = self.V         # EOS_WORD 的 id
+    #     bos_w = self.V + 1     # BOS_WORD 的 id
+
+    #     for j in range(1, n):
+    #         word_id, tag_id = isent[j]
+
+    #         # 发射 log 概率向量 e(t) = log p(w_j | t)
+    #         if word_id < self.V:
+    #             emit = logB[:, word_id]           # (k,)
+    #         else:
+    #             # 对 EOS/BOS 词：只有对应的 tag 可以以概率 1 发射
+    #             emit = torch.full((self.k,), -inf)
+    #             if word_id == eos_w:
+    #                 emit[self.eos_t] = 0.0        # log(1)
+    #             elif word_id == bos_w:
+    #                 emit[self.bos_t] = 0.0
+
+    #         # 矩阵形式：α_j(t) = emit(t) + logsum_s [ α_{j-1}(s) + logA[s,t] ]
+    #         trans_part = alpha[j-1].unsqueeze(1) + logA      # (k, k)
+    #         alpha[j] = emit + torch.logsumexp(trans_part, dim=0)
+
+    #         # 如果这个位置有监督标签（icsup 情况：肯定有）
+    #         if tag_id is not None and tag_id >= 0:
+    #             mask = torch.full((self.k,), -inf)
+    #             mask[tag_id] = 0.0
+    #             alpha[j] = alpha[j] + mask    # 强制只保留该 tag，其他变 -inf
+
+    #     # 最后一个位置是 EOS，对应 tag=EOS_TAG，所以 logZ 就是 sum_t α_{n-1}(t)
+    #     log_Z = torch.logsumexp(alpha[-1], dim=0)
+
+    #     self.alpha = alpha
+    #     self.log_Z = log_Z
+    #     return log_Z
+
+    # @typechecked
+    # def backward_pass(self, isent: IntegerizedSentence, mult: float = 1) -> TorchScalar:
+    #     """
+    #     后向算法（log-space）+ 计算期望转移/发射计数，累加到 self.A_counts / self.B_counts。
+    #     """
+    #     n = len(isent)
+    #     logA = torch.log(self.A + 1e-12)
+    #     logB = torch.log(self.B + 1e-12)
+
+    #     beta = torch.full((n, self.k), -inf)
+
+    #     # 末尾是 EOS
+    #     _, tag_last = isent[-1]
+    #     beta[-1, :] = -inf
+    #     beta[-1, tag_last] = 0.0   # log(1)
+
+    #     eos_w = self.V
+    #     bos_w = self.V + 1
+
+    #     # 反向递推：j = n-2, ..., 0
+    #     for j in reversed(range(n - 1)):
+    #         word_id_next, tag_id_next = isent[j + 1]
+
+    #         # 发射 log 概率 e_{j+1}(t) = log p(w_{j+1} | t)
+    #         if word_id_next < self.V:
+    #             emit_next = logB[:, word_id_next]          # (k,)
+    #         else:
+    #             emit_next = torch.full((self.k,), -inf)
+    #             if word_id_next == eos_w:
+    #                 emit_next[self.eos_t] = 0.0
+    #             elif word_id_next == bos_w:
+    #                 emit_next[self.bos_t] = 0.0
+
+    #         # β_j(s) = logsum_t [ logA[s,t] + emit_next(t) + β_{j+1}(t) ]
+    #         inner = logA + emit_next.unsqueeze(0) + beta[j + 1].unsqueeze(0)  # (k,k)
+    #         beta[j] = torch.logsumexp(inner, dim=1)
+
+    #         # 如果位置 j 的 tag 已知，强制只保留该 tag
+    #         _, tag_j = isent[j]
+    #         if tag_j is not None and tag_j >= 0:
+
+    #             mask = torch.full((self.k,), -inf)
+    #             mask[tag_j] = 0.0
+    #             beta[j] = beta[j] + mask
+
+    #     log_Z_backward = torch.logsumexp(self.alpha[-1], dim=0)
+    #     self._beta = beta
+
+    #     # ========= 下面是 E-step 的期望计数 =========
+    #     logZ = self.log_Z
+    #     alpha = self.alpha
+
+    #     # 1）发射期望计数：γ_j(t) = p(tag_j=t | 全句)
+    #     for j in range(1, n - 1):          # 跳过 BOS 和 EOS 的位置
+    #         word_id, _ = isent[j]
+    #         if word_id >= self.V:
+    #             continue                   # BOS/EOS 词，没有列
+    #         log_gamma = alpha[j] + beta[j] - logZ     # (k,)
+    #         gamma = torch.exp(log_gamma)             # 转回普通空间
+    #         # 累加到 B_counts[:, word_id]
+    #         gamma[self.bos_t] = 0.0
+    #         gamma[self.eos_t] = 0.0
+    #         self.B_counts[:, word_id] += mult * gamma
+
+    #     # 2）转移期望计数：ξ_j(s,t) = p(tag_j=s, tag_{j+1}=t | 全句)
+    #     for j in range(0, n - 1):
+    #         word_id_next, _ = isent[j + 1]
+
+    #         if word_id_next < self.V:
+    #             emit_next = logB[:, word_id_next]
+    #         else:
+    #             emit_next = torch.full((self.k,), -inf)
+    #             if word_id_next == eos_w:
+    #                 emit_next[self.eos_t] = 0.0
+    #             elif word_id_next == bos_w:
+    #                 emit_next[self.bos_t] = 0.0
+
+    #         # ξ_log[s,t] = α_j(s) + logA[s,t] + emit_next(t) + β_{j+1}(t) - logZ
+    #         xi_log = (
+    #             alpha[j].unsqueeze(1)        # (k,1)
+    #             + logA                       # (k,k)
+    #             + emit_next.unsqueeze(0)     # (1,k)
+    #             + beta[j + 1].unsqueeze(0)   # (1,k)
+    #             - logZ
+    #         )
+    #         xi = torch.exp(xi_log)
+
+    #         # 结构零：不能 to BOS，不能 from EOS
+    #         xi[:, self.bos_t] = 0.0
+    #         xi[self.eos_t, :] = 0.0
+
+    #         self.A_counts += mult * xi
+
+    #     return log_Z_backward
+
+
     @typechecked
     def forward_pass(self, isent: IntegerizedSentence) -> TorchScalar:
         """Run the forward algorithm from the handout on a tagged, untagged, 
@@ -319,26 +469,32 @@ class HiddenMarkovModel:
         self.log_A = log_A
         self.log_B = log_B
         n = len(isent)
-        log_alpha = [torch.full((self.k,), -float("inf")) for _ in range(n)]
-        log_alpha[0] = torch.log(alpha[0])
+        logalpha = [torch.full((self.k,), -float("inf")) for _ in range(n)]
+        logalpha[0] = torch.log(alpha[0])
         # k = [0.0 for _ in isent] 
         
-        
+        eos_w = self.V       # EOS_WORD id
+        bos_w = self.V + 1   # BOS_WORD id
         for j in range(1, n):
-            word_id = isent[j][0]
-            log_alpha[j] = torch.logsumexp(log_alpha[j-1].unsqueeze(1) + log_A, dim=0) 
+            word_id, tag_id = isent[j]
+            logalpha[j] = torch.logsumexp(logalpha[j-1].unsqueeze(1) + log_A, dim=0) 
             if word_id < self.V :
                 log_emiss = log_B[:, word_id]
             else:
                 log_emiss = torch.full((self.k,), -float("inf"), device=log_B.device)
-            if j < n-1:
-                 log_alpha[j] += log_emiss
-            # k[j] = torch.max(alpha[j])
-        # log_alpha[-1] = torch.logsumexp(log_alpha[n-2].unsqueeze(1) + log_A[:, self.eos_t], dim=0) 
+                if word_id == eos_w:
+                    log_emiss[self.eos_t] = 0.0
+                elif word_id == bos_w:
+                    log_emiss[self.bos_t] = 0.0
 
-        self.alpha = log_alpha  # remember for backward pass
-        # log_Z = torch.logsumexp(log_alpha[-1], dim=0) #+ torch.sum(torch.log(torch.tensor(k[-1])))
-        log_Z = log_alpha[-1][self.eos_t]
+            logalpha[j] += log_emiss
+            if tag_id is not None and tag_id >= 0:
+                mask = torch.full((self.k,), -float("inf"))
+                mask[tag_id] = 0.0
+                logalpha[j] += mask
+
+        self.alpha = logalpha  # remember for backward pass
+        log_Z = torch.logsumexp(logalpha[-1], dim=0)
         self.log_Z = log_Z      # remember for backward pass
         return log_Z
 
@@ -357,42 +513,88 @@ class HiddenMarkovModel:
         beta = [torch.empty(self.k) for _ in isent]
         beta[-1] = self.eye[self.eos_t]  # vector that is one-hot at EOS_TAG
         n = len(isent)
-        log_beta = [torch.full((self.k,), -float("inf")) for _ in range(n)]
-        log_beta[-1] = torch.log(beta[-1])
-        for j in range(n-1, 0, -1):
-            if j == n - 1:
-            # 只做一次转移：beta[n-2](i) = sum_k A[i,k] * beta[n-1](k)
-                tmp = self.log_A + log_beta[j].unsqueeze(0)   # (k,k)
-                log_beta[j - 1] = torch.logsumexp(tmp, dim=1)
+        eos_w = self.V
+        bos_w = self.V + 1
+        logbeta = [torch.full((self.k,), -float("inf")) for _ in range(n)]
+        logbeta[-1] = torch.log(beta[-1])
+         # 反向递推：j = n-2, ..., 0
+        for j in reversed(range(n - 1)):
+            word_id_next, tag_id_next = isent[j + 1]
 
-                # xi_{n-1}(i,k) = p(tag_{n-2}=i, tag_{n-1}=k | x)，无 emission 项
-                xi = torch.exp(
-                    self.alpha[j - 1].unsqueeze(1) +
-                    self.log_A +
-                    log_beta[j].unsqueeze(0) -
-                    self.log_Z
-                )
-                self.A_counts += mult * xi
-                continue
-            word_id = isent[j][0]   
-            if word_id < self.V:
-                log_B_col = self.log_B[:, word_id]
+            # 1) 发射 log 概率：log B_t(w_{j+1})
+            if word_id_next < self.V:
+                emit_next = self.log_B[:, word_id_next]
             else:
-                log_B_col = torch.full((self.k,), -float("inf"), device=self.log_B.device)
-                
-            gamma = torch.exp(self.alpha[j] + log_beta[j] - self.log_Z)
-            if word_id < self.V:
-                self.B_counts[:, word_id] += mult * gamma
-            log_beta[j-1] = torch.logsumexp(self.log_A + log_B_col.unsqueeze(0) + log_beta[j].unsqueeze(0), dim=1)
-            self.A_counts += mult * torch.exp(self.alpha[j-1].unsqueeze(1) + self.log_A + log_B_col.unsqueeze(0) + log_beta[j].unsqueeze(0) - self.log_Z)
-        self.A_counts[self.A_counts < 1e-8] = 0.0
-        self.B_counts[self.B_counts < 1e-8] = 0.0
+                emit_next = torch.full((self.k,), -float("inf"))
+                if word_id_next == eos_w:
+                    emit_next[self.eos_t] = 0.0
+                elif word_id_next == bos_w:
+                    emit_next[self.bos_t] = 0.0
 
-        log_Z_backward =log_beta[0][self.bos_t]
-        # log_Z_backward = torch.logsumexp(log_beta[0], dim=0)
-        assert torch.isclose(log_Z_backward, self.log_Z, atol=1e-3)
+            # 2) β_j(s) = logsumexp_t [ logA[s,t] + emit_next(t) + β_{j+1}(t) ]
+            inner = self.log_A + emit_next.unsqueeze(0) + logbeta[j + 1].unsqueeze(0)  # (k,k)
+            logbeta[j] = torch.logsumexp(inner, dim=1)  # (k,)
+
+            # 3) 若位置 j 有监督标签，则 mask
+            _, tag_j = isent[j]
+            if tag_j is not None and tag_j >= 0:
+                mask = torch.full((self.k,), -float("inf"))
+                mask[tag_j] = 0.0
+                logbeta[j] = logbeta[j] + mask
+
+        # backward 视角的 logZ：用 alpha[-1] 也可以
+        log_Z_backward = torch.logsumexp(self.alpha[-1], dim=0)
+
+        # ========= E-step：用 alpha/beta 计算期望计数 =========
+        alpha = self.alpha
+        logZ = self.log_Z
+
+        # 1）发射期望：γ_j(t)
+        for j in range(1, n - 1):            # 跳过 BOS 和 EOS 的位置
+            word_id, _ = isent[j]
+            if word_id >= self.V:
+                continue                     # BOS/EOS 词，不在 B 矩阵中
+
+            log_gamma = alpha[j] + logbeta[j] - logZ
+            gamma = torch.exp(log_gamma)
+
+            # 不允许 BOS/EOS tag 发射普通词
+            gamma[self.bos_t] = 0.0
+            gamma[self.eos_t] = 0.0
+
+            self.B_counts[:, word_id] += mult * gamma
+
+        # 2）转移期望：ξ_j(s,t)
+        for j in range(0, n - 1):
+            word_id_next, _ = isent[j + 1]
+
+            if word_id_next < self.V:
+                emit_next = self.log_B[:, word_id_next]
+            else:
+                emit_next = torch.full((self.k,), -float("inf"))
+                if word_id_next == eos_w:
+                    emit_next[self.eos_t] = 0.0
+                elif word_id_next == bos_w:
+                    emit_next[self.bos_t] = 0.0
+
+            xi_log = (
+                alpha[j].unsqueeze(1)        # (k,1)
+                + self.log_A                      # (k,k)
+                + emit_next.unsqueeze(0)     # (1,k)
+                + logbeta[j + 1].unsqueeze(0)
+                - logZ
+            )
+            xi = torch.exp(xi_log)
+
+            # 结构零：不能 to BOS，也不能 from EOS
+            xi[:, self.bos_t] = 0.0
+            xi[self.eos_t, :] = 0.0
+
+            self.A_counts += mult * xi
+
+        # 不再用 <1e-8 的 hack 抹零，结构零已在上面显式控制
+        assert torch.isclose(log_Z_backward, logZ, atol=1e-3)
         return log_Z_backward
-
     def viterbi_tagging(self, sentence: Sentence, corpus: TaggedCorpus) -> Sentence:
         """Find the most probable tagging for the given sentence, according to the
         current model."""
@@ -425,18 +627,18 @@ class HiddenMarkovModel:
         log_B = torch.log(self.B+1e-12)
         self.log_A = log_A
         self.log_B = log_B
-        log_alpha = [torch.full((self.k,), -float("inf")) for _ in range(n)]
-        log_alpha[0] = torch.log(alpha[0])
+        logalpha = [torch.full((self.k,), -float("inf")) for _ in range(n)]
+        logalpha[0] = torch.log(alpha[0])
         # k = [0.0 for _ in isent] 
 
         for j in range(1, n-1):
-            temp = log_alpha[j-1].unsqueeze(1) + log_A 
-            log_alpha[j], backpointers[j] = torch.max(temp, dim=0)
+            temp = logalpha[j-1].unsqueeze(1) + log_A 
+            logalpha[j], backpointers[j] = torch.max(temp, dim=0)
             # print(" isent[j]:",isent[j])
             # backpointers[j] = torch.argmax(temp, dim=0)
-            log_alpha[j] += log_B[:, isent[j][0]] # word, tag
-        temp = log_alpha[n-2].unsqueeze(1) + log_A[:, self.eos_t]
-        log_alpha[-1], backpointers[-1] = torch.max(temp, dim=0)
+            logalpha[j] += log_B[:, isent[j][0]] # word, tag
+        temp = logalpha[n-2].unsqueeze(1) + log_A[:, self.eos_t]
+        logalpha[-1], backpointers[-1] = torch.max(temp, dim=0)
             
             # k[j] = torch.max(alpha[j])
         tags = [0 for _ in range(n)]

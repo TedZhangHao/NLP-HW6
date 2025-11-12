@@ -263,7 +263,7 @@ class ConditionalRandomField(HiddenMarkovModel):
             grad_WA = self.A_counts.sum(dim=0, keepdim=True)  # sum over rows to get unigram counts (1,k)
             self.WA += lr * grad_WA
         else:
-            grad_WA += lr*self.A_counts  # bigram counts (k,k)
+            self.WA += lr*self.A_counts  # bigram counts (k,k)
         self.WB += lr*self.B_counts  # emission counts (k,v)
         
     def reg_gradient_step(self, lr: float, reg: float, frac: float):
