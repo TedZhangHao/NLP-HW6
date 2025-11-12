@@ -84,6 +84,8 @@ Because using words from dev to construct V may introduce data leakage. This inf
 #### (d)
 It will help the the overall tagging accuracy
 
+#### (e)
+
 ## Q4
 (a)
 When trained on the same supervised corpus (ensup) with different parameters,
@@ -95,3 +97,8 @@ Adding unlabeled data (enraw) slightly improved the HMM’s log-likelihood (cros
 This shows that the HMM can exploit unlabeled sentences through EM by marginalizing over hidden tag sequences.
 The CRF, however, cannot use enraw at all, since its conditional objective $logp(t∣w)$ requires gold tags t.
 Thus, its results remain unchanged.
+The iterations of semi-supervised training can initially help but often end up hurting overall tagging accuracy after a few rounds since the model will more rely on log-likelihood of the raw data, which helps model to explain words regardless of the actual tags. For known words, the accuracy stays the same since their emission prbabilities are well learnt from the supervision data. For seen words, the accuracy might be silghtly improved at first due to the extra contexts, then drop if the log-likelihood is reinforced. For the novel words, they might be slightly improved at first since they could be referrenced by the nearby known words, but they might be even worse as the iteration goes on than seen words since there is little evidence for them, and log-likelihood might easily make the tag to explain them in other direction far away from the correct tags.
+
+
+
+
