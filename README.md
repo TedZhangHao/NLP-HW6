@@ -83,3 +83,15 @@ Because using words from dev to construct V may introduce data leakage. This inf
 
 #### (d)
 It will help the the overall tagging accuracy
+
+## Q4
+(a)
+When trained on the same supervised corpus (ensup) with different parameters,
+the CRF achieved much lower cross-entropy (0.42 nats) and higher tagging accuracy (the best is 89%) compared to the HMM (cross-entropy: 7.45 nats, accuracy: 87%).
+This demonstrates that discriminative training of p(t∣w) allows the CRF to focus directly on predicting tags rather than modeling the word sequence, giving better generalization on the dev set.
+
+(b)
+Adding unlabeled data (enraw) slightly improved the HMM’s log-likelihood (cross-entropy drop from 7.45 to 7.35) and accuracy ($\approx$ +0.5%).
+This shows that the HMM can exploit unlabeled sentences through EM by marginalizing over hidden tag sequences.
+The CRF, however, cannot use enraw at all, since its conditional objective $logp(t∣w)$ requires gold tags t.
+Thus, its results remain unchanged.
