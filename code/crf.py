@@ -67,7 +67,7 @@ class ConditionalRandomField(HiddenMarkovModel):
 
         # you fill this in!
         k = len(self.tagset)
-        v = len(self.vocab)
+        v = self.V
         if self.unigram:
             self.WA = torch.randn(1, k) * 0.01  # unigram transition potentials
         else:
@@ -87,13 +87,17 @@ class ConditionalRandomField(HiddenMarkovModel):
         
         # you fill this in!
         k = len(self.tagset)
-        v = len(self.vocab)
+        # v = self.V
         if self.unigram:
             tag_pots = torch.exp(self.WA)  # (1,k)
             self.A = tag_pots.repeat(k, 1)  # bigram transition potentials from unigram parameters (k,k)
         else:
             self.A = torch.exp(self.WA)     # bigram transition potentials (k,k)
         self.B = torch.exp(self.WB)         # emission potentials (k,v)
+        self.A[:, self.bos_t] = 0.0
+        self.A[self.eos_t, :] = 0.0
+        self.B[self.eos_t, :] = 0.0
+        self.B[self.bos_t, :] = 0.0
 
     @override
     def train(self,
