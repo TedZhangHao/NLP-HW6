@@ -517,11 +517,11 @@ class HiddenMarkovModel:
         bos_w = self.V + 1
         logbeta = [torch.full((self.k,), -float("inf")) for _ in range(n)]
         logbeta[-1] = torch.log(beta[-1])
-         # 反向递推：j = n-2, ..., 0
+         # reversed recursion j = n-2, ..., 0
         for j in reversed(range(n - 1)):
             word_id_next, tag_id_next = isent[j + 1]
 
-            # 1) 发射 log 概率：log B_t(w_{j+1})
+            # emission log prob vector
             if word_id_next < self.V:
                 emit_next = self.log_B[:, word_id_next]
             else:
@@ -531,40 +531,40 @@ class HiddenMarkovModel:
                 elif word_id_next == bos_w:
                     emit_next[self.bos_t] = 0.0
 
-            # 2) β_j(s) = logsumexp_t [ logA[s,t] + emit_next(t) + β_{j+1}(t) ]
+            
             inner = self.log_A + emit_next.unsqueeze(0) + logbeta[j + 1].unsqueeze(0)  # (k,k)
             logbeta[j] = torch.logsumexp(inner, dim=1)  # (k,)
 
-            # 3) 若位置 j 有监督标签，则 mask
+            # consideing supervised tag at position j
             _, tag_j = isent[j]
             if tag_j is not None and tag_j >= 0:
                 mask = torch.full((self.k,), -float("inf"))
                 mask[tag_j] = 0.0
                 logbeta[j] = logbeta[j] + mask
 
-        # backward 视角的 logZ：用 alpha[-1] 也可以
+        # backward 
         log_Z_backward = torch.logsumexp(self.alpha[-1], dim=0)
 
-        # ========= E-step：用 alpha/beta 计算期望计数 =========
+        # calculate expected counts
         alpha = self.alpha
         logZ = self.log_Z
 
-        # 1）发射期望：γ_j(t)
-        for j in range(1, n - 1):            # 跳过 BOS 和 EOS 的位置
+        # emission expected counts
+        for j in range(1, n - 1):            # omit BOS and EOS positions
             word_id, _ = isent[j]
             if word_id >= self.V:
-                continue                     # BOS/EOS 词，不在 B 矩阵中
+                continue                     # no columns for BOS/EOS words
 
             log_gamma = alpha[j] + logbeta[j] - logZ
             gamma = torch.exp(log_gamma)
 
-            # 不允许 BOS/EOS tag 发射普通词
+            # no emissions from BOS/EOS tags
             gamma[self.bos_t] = 0.0
             gamma[self.eos_t] = 0.0
 
             self.B_counts[:, word_id] += mult * gamma
 
-        # 2）转移期望：ξ_j(s,t)
+        # transition expected counts
         for j in range(0, n - 1):
             word_id_next, _ = isent[j + 1]
 
@@ -586,13 +586,12 @@ class HiddenMarkovModel:
             )
             xi = torch.exp(xi_log)
 
-            # 结构零：不能 to BOS，也不能 from EOS
+            # no transitions to BOS, from EOS
             xi[:, self.bos_t] = 0.0
             xi[self.eos_t, :] = 0.0
 
             self.A_counts += mult * xi
 
-        # 不再用 <1e-8 的 hack 抹零，结构零已在上面显式控制
         assert torch.isclose(log_Z_backward, logZ, atol=1e-3)
         return log_Z_backward
     def viterbi_tagging(self, sentence: Sentence, corpus: TaggedCorpus) -> Sentence:
@@ -630,20 +629,29 @@ class HiddenMarkovModel:
         logalpha = [torch.full((self.k,), -float("inf")) for _ in range(n)]
         logalpha[0] = torch.log(alpha[0])
         # k = [0.0 for _ in isent] 
-
-        for j in range(1, n-1):
+        eos_w, bos_w = self.V, self.V + 1
+        for j in range(1, n):
+            word_id, tag_id = isent[j]
             temp = logalpha[j-1].unsqueeze(1) + log_A 
             logalpha[j], backpointers[j] = torch.max(temp, dim=0)
             # print(" isent[j]:",isent[j])
             # backpointers[j] = torch.argmax(temp, dim=0)
-            logalpha[j] += log_B[:, isent[j][0]] # word, tag
-        temp = logalpha[n-2].unsqueeze(1) + log_A[:, self.eos_t]
-        logalpha[-1], backpointers[-1] = torch.max(temp, dim=0)
+            if word_id < self.V:
+                log_emiss = log_B[:, word_id]
+            else:
+                log_emiss = torch.full((self.k,), -float("inf"), device=log_B.device)
+                if word_id == eos_w:
+                    log_emiss[self.eos_t] = 0.0
+                elif word_id == bos_w:
+                    log_emiss[self.bos_t] = 0.0
+            logalpha[j] += log_emiss
+        # temp = logalpha[n-2].unsqueeze(1) + log_A[:, self.eos_t]
+        # logalpha[-1], backpointers[-1] = torch.max(temp, dim=0)
             
             # k[j] = torch.max(alpha[j])
         tags = [0 for _ in range(n)]
-        alpha[-1] = self.eye[self.eos_t]
-        tags[-1] = torch.argmax(alpha[-1]).item()
+        # alpha[-1] = self.eye[self.eos_t]
+        tags[-1] = self.eos_t  #torch.argmax(alpha[-1]).item()
         for j in range(n-1, 0, -1):
                 tags[j-1] = backpointers[j][tags[j]].item()
 
