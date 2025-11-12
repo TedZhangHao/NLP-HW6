@@ -246,6 +246,22 @@ Baed on the result, ensuo+enraw, ensup+ensup+ensup+enraw, and enraw->ensup seem 
 2. ensup+ensup+ensup+enraw：the accuracy pattern is similar to ensup+enraw, but the accuracy is much higher and the cross-entropy is much lower. This indicates that by weighting supervised data more heavily, we can suppress the drift from correct tag to incomplete-data log-likelihood and force the model parameter more explainable of the gold label rather than the raw data distribution.
 3. enraw->ensup: the accuracy is also higher than the original approach, and this is because that doing supervised learning after unsupervised learning makes model learn the distribution of the raw data and then provide supervision signals that correctify the tagging, which is more stable since we are leading the model towards right direction after it learns the basic knowledge of data rather than reinforcing the incomplete-data log-likelihood as we did in the original approach.
 
+
+## Q3
+In this part, I implemented posterior decoding as an alternative to the standard Viterbi decoding for the HMM tagger.
+Unlike Viterbi decoding, which searches for the single most likely tag sequence $arg max_{y} P(y|x)$, posterior decoding independently chooses for each word the tag with the highest marginal posterior probability:
+$$ y^​t ​=argmax_{y} ​P(yt​∣x) $$
+This allows each position to be tagged based on the overall marginal distribution rather than being constrained by one globally optimal sequence. 
+And I also implement Hard lexical constraints. It prevent implausible tags for closed-class and highly regular tokens (e.g., the as D, punctuation, auxiliaries). This substantially reduces systematic errors, yielding a further +3.46% over Viterbi and +3.46–3.46 vs no-hard posterior. 
+The experiments results as below:
+
+| System                                    | Tagging acc. (all) |
+| ----------------------------------------- | -----------------: |
+| HMM (Viterbi)                             |        **87.035%** |
+| HMM (Posterior, no hard)                  |        **88.225%** |
+| HMM (Posterior + Hard constraints)        |        **91.682%** |
+
+
 ## Q4
 (a)
 When trained on the same supervised corpus (ensup) with different parameters,
@@ -258,6 +274,11 @@ This shows that the HMM can exploit unlabeled sentences through EM by marginaliz
 The CRF, however, cannot use enraw at all, since its conditional objective $logp(t∣w)$ requires gold tags t.
 Thus, its results remain unchanged.
 The iterations of semi-supervised training can initially help but often end up hurting overall tagging accuracy after a few rounds since the model will more rely on log-likelihood of the raw data, which helps model to explain words regardless of the actual tags. For known words, the accuracy stays the same since their emission prbabilities are well learnt from the supervision data. For seen words, the accuracy might be silghtly improved at first due to the extra contexts, then drop if the log-likelihood is reinforced. For the novel words, they might be slightly improved at first since they could be referrenced by the nearby known words, but they might be even worse as the iteration goes on than seen words since there is little evidence for them, and log-likelihood might easily make the tag to explain them in other direction far away from the correct tags.
+
+## Q5
+I once ate 5 ice creams in one day during a summer holiday.
+It was very hot, and they kept handing out free samples.
+I didn’t get sick, but I didn’t want to see ice cream again for a week!
 
 
 
