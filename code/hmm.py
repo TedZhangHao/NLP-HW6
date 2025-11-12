@@ -398,6 +398,7 @@ class HiddenMarkovModel:
                 mask[tag_j] = 0.0
                 logbeta[j] = logbeta[j] + mask
 
+        self._beta = logbeta   # remember for expected counts
         # backward 
         log_Z_backward = torch.logsumexp(self.alpha[-1], dim=0)
 

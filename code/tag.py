@@ -13,6 +13,7 @@ from corpus import TaggedCorpus
 from eval import model_cross_entropy, viterbi_error_rate, write_tagging, log as eval_log
 from hmm import HiddenMarkovModel
 from crf import ConditionalRandomField
+import torch
 
 log = logging.getLogger(Path(__file__).stem)  # For usage, see findsim.py in earlier assignment.
 
@@ -264,6 +265,56 @@ def parse_args() -> argparse.Namespace:
 
     return args
 
+def posterior_decode_sentence(model, sentence, corpus):
+    """
+    Posterior decoding: for each position i, choose argmax_t p(t_i | w_1:n).
+    Works for both HMM and CRF since both support forward/backward via E_step().
+    """
+    # Step 1: integerize the sentence
+    isent = model._integerize_sentence(sentence, corpus)
+    n_tags = len(model.tagset)
+    n = len(isent)
+
+    # Step 2: run forward and backward passes
+    # These functions in your HMM/CRF store alpha and log_Z internally
+    logZ_forward = model.forward_pass(isent)
+    model.backward_pass(isent, mult=0.0)   # 不累加计数，只求 beta
+
+    logalpha = model.alpha
+    logbeta = model._beta 
+    logZ = model.log_Z
+
+    # Step 3: compute posterior per position: p(t_i | w_1:n)
+    post = torch.stack([torch.exp(logalpha[i] + logbeta[i] - logZ) for i in range(n)])
+    post = post / post.sum(dim=1, keepdim=True)  # 归一化
+
+    # Step 4: choose argmax tag at each position
+    y_hat = post.argmax(dim=1).tolist()
+    return y_hat
+
+def posterior_error_rate(model, eval_corpus, known_vocab=None, show_cross_entropy=False):
+    """
+    Calculate the token-level error rate (=1-accuracy) using posterior decoding.
+    """
+    total = 0
+    correct = 0
+    for sentence in eval_corpus:
+        # posterior prediction (entire sentence index sequence)
+        pred = posterior_decode_sentence(model, sentence, eval_corpus)
+
+        # gold index
+        gold = [model.tagset.index(tag) for (_, tag) in sentence]
+
+        # Skip BOS/EOS
+        for g, p in zip(gold[1:-1], pred[1:-1]):
+            total += 1
+            correct += (g == p)
+
+    acc = 100.0 * correct / max(total, 1)
+    logging.getLogger("eval").info(f"Tagging accuracy (posterior): {acc:.3f}%")
+    return 1.0 - acc / 100.0
+
+
 def main() -> None:
     args = parse_args()
     
@@ -353,6 +404,8 @@ def main() -> None:
         pass
     elif args.loss == 'viterbi_error':   # only makes sense if eval_corpus is supervised
         loss, other_loss = other_loss, loss   # swap
+    if args.awesome:
+        other_loss = lambda x: posterior_error_rate(x, eval_corpus, known_vocab=known_vocab or train_corpus.vocab)
 
     # Train on the training corpus, if given.    
     if train_corpus:
@@ -393,10 +446,22 @@ def main() -> None:
     with torch.inference_mode():   # turn off all gradient tracking
         # Run the model on the input data (eval corpus).
         if args.output_file:
-            write_tagging(model, eval_corpus, Path(args.output_file))
-            eval_log.info(f"Wrote tagging to {args.output_file}")
+            if args.awesome:
+        # Posterior decoding 
+                out_path = Path(args.output_file)
+                with out_path.open("w", encoding="utf-8") as fout:
+                    for sent in eval_corpus:
+                        pred_idx = posterior_decode_sentence(model, sent, eval_corpus)
+                        tags = [model.tagset[i] for i in pred_idx]
+                        words = [w for (w, _) in sent]
+                        # Skip BOS/EOS
+                        fout.write(" ".join(f"{w}/{t}" for w, t in zip(words[1:-1], tags[1:-1])) + "\n")
+                eval_log.info(f"Wrote posterior-decoded tagging to {args.output_file}")
+            else:
+                write_tagging(model, eval_corpus, Path(args.output_file))
+                eval_log.info(f"Wrote tagging to {args.output_file}")
 
-        # Show how well we did on the input data.  
+            # Show how well we did on the input data.  
         loss(model)         # show the main loss function (using the logger) -- redundant if we trained
         other_loss(model)   # show the other loss function (using the logger)
         eval_log.info("===")
