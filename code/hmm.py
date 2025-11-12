@@ -171,8 +171,13 @@ class HiddenMarkovModel:
         # unigram case.
         if not self.unigram:
             self.A_counts += λ      # smooth the counts
+            self.A[:, self.bos_t] = 0
+            self.A[self.eos_t, :]= 0
+            self.A[self.bos_t, self.eos_t] = 0
             self.A = self.A_counts / self.A_counts.sum(dim=1, keepdim=True)  # normalize into prob distributions
             self.A[:, self.bos_t] = 0
+            self.A[self.eos_t, :] = 0
+            self.A[self.bos_t, self.eos_t] = 0
         else:
             pass
 

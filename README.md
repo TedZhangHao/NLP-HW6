@@ -71,7 +71,7 @@ It separates emission and transition into different rules, making the structure 
 
 ## Q2:
 #### (a)
-Because $\alpha_{BOS}(0)$ and $\beta_{EOS}(b)$ are the boundary, and setting them as 1 represents that the valid tag sentence must start from BOS state and end in EOS state. These boundary conditions are suppose to be true not just because they are meant to be in this way theoretically but also as base cases for forward and backward algorithm to propagate with initials and have a neutral multiplicative factor. 
+Because $\alpha_{BOS}(0)$ and $\beta_{EOS}(n+1)$ are the boundary, and setting them as 1 represents that the valid tag sentence must start from BOS state and end in EOS state. These boundary conditions are suppose to be true not just because they are meant to be in this way theoretically but also as base cases for forward and backward algorithm to propagate with initials and have a neutral multiplicative factor. 
 
 #### (b)
 This happens because the raw file is unlabled, and the model can freely marginalize over the tags, matching the data distributaion it was trained on. While the dec file contains fixed labels that may differ in distribution and constrain the model more strictly. Therefore, the perplexity (surprisal) on the dev file is higher. 
