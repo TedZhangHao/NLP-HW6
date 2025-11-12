@@ -91,6 +91,25 @@ It sometimes might help because model can learn new words from the context. Thro
 #### (f)
 Semi-supervied learning dose not always help is because (1) as iteration goes on, the tagging scheme of model tends to favor the log-likelihood object, which only care which tag being used can best explain the data regardless of the correctness. In such circumstance, the model might tag the words with wrong tags but higher explaination, and those tags are reinforced by iterations since they are kept and might cause further wrong inference on the other word's tagging, degrading emission and transition estimates. As a result, the log-likelihood on the raw data increases but the tagging accuracy decreases. (2) There might exist mismatch between the supervised data and raw data, training on raw data may shift the parameter distribution away from the one trained on the supervised data. 
 
+
+## Q3
+In this part, I implemented posterior decoding as an alternative to the standard Viterbi decoding for the HMM tagger.
+Unlike Viterbi decoding, which searches for the single most likely tag sequence $arg max_{y} P(y|x)$, posterior decoding independently chooses for each word the tag with the highest marginal posterior probability:
+$$ y^​t ​=argmax_{y} ​P(yt​∣x) $$
+This allows each position to be tagged based on the overall marginal distribution rather than being constrained by one globally optimal sequence. 
+And I also implement Hard lexical constraints. It prevent implausible tags for closed-class and highly regular tokens (e.g., the as D, punctuation, auxiliaries). This substantially reduces systematic errors, yielding a further +3.46% over Viterbi and +3.46–3.46 vs no-hard posterior. 
+The experiments results as below:
+
+| System                                    | Tagging acc. (all) |
+| ----------------------------------------- | -----------------: |
+| HMM (Viterbi)                             |        **87.035%** |
+| HMM (Posterior, no hard)                  |        **88.225%** |
+| HMM (Posterior + Hard constraints)        |        **91.682%** |
+
+
+	​
+
+P(y∣x), posterior decoding independently chooses for each word the tag with the highest marginal posterior probability:
 ## Q4
 (a)
 When trained on the same supervised corpus (ensup) with different parameters,
@@ -103,6 +122,8 @@ This shows that the HMM can exploit unlabeled sentences through EM by marginaliz
 The CRF, however, cannot use enraw at all, since its conditional objective $logp(t∣w)$ requires gold tags t.
 Thus, its results remain unchanged.
 The iterations of semi-supervised training can initially help but often end up hurting overall tagging accuracy after a few rounds since the model will more rely on log-likelihood of the raw data, which helps model to explain words regardless of the actual tags. For known words, the accuracy stays the same since their emission prbabilities are well learnt from the supervision data. For seen words, the accuracy might be silghtly improved at first due to the extra contexts, then drop if the log-likelihood is reinforced. For the novel words, they might be slightly improved at first since they could be referrenced by the nearby known words, but they might be even worse as the iteration goes on than seen words since there is little evidence for them, and log-likelihood might easily make the tag to explain them in other direction far away from the correct tags.
+
+
 
 
 

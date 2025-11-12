@@ -8,3 +8,19 @@ Wrote posterior-decoded tagging to data/en_hmm_raw_endev.output
 Tagging accuracy: all: 87.035%, known: 90.189%, seen: nan%, novel: 40.291%
 Tagging accuracy (posterior): 100.000%
 ===
+Wrote posterior-decoded tagging to data/en_hmm_raw_endev.output
+Tagging accuracy: all: 87.035%, known: 90.189%, seen: nan%, novel: 40.291%
+Tagging accuracy (posterior): 100.000%
+===
+Wrote posterior-decoded tagging to data/en_hmm_raw_endev.output
+Tagging accuracy: all: 87.035%, known: 90.189%, seen: nan%, novel: 40.291%
+Tagging accuracy (posterior): 91.682%
+===
+Wrote posterior-decoded tagging to data/en_hmm_raw_endev.output
+Tagging accuracy: all: 87.035%, known: 90.189%, seen: nan%, novel: 40.291%
+Tagging accuracy (posterior): 88.225%
+===
+Wrote tagging to data/en_hmm_raw_endev.output
+Tagging accuracy: all: 87.035%, known: 90.189%, seen: nan%, novel: 40.291%
+Cross-entropy: 7.3486 nats (= perplexity 1553.994)
+===
