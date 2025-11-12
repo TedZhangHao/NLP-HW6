@@ -82,9 +82,14 @@ The dev perplexity is mmore important, since it reflects the model's generalizat
 Because using words from dev to construct V may introduce data leakage. This information leakage might give model unfair prior knowledge of test data, which makes model cheat.
 
 #### (d)
-It will help the the overall tagging accuracy
+The iterations hurt the overall tagging accuracy. The tagging accuracy overall decreased from 88.63% to 87.035%; the accuracy on known words decreased from 93.06% to 91.39%; the accuracy on seen words increased from 44.11% to 45.79%; and the accuracy on novel words decreasd from 42.73% to 40.29%. 
 
 #### (e)
+It sometimes might help because model can learn new words from the context. Through semi-supervised learning, model witnessed some new words in the untagged sentences, and can infer the tag of such new words by the surrounding words that are learned during the supersed learning.
+
+
+#### (f)
+Semi-supervied learning dose not always help is because (1) as iteration goes on, the tagging scheme of model tends to favor the log-likelihood object, which only care which tag being used can best explain the data regardless of the correctness. In such circumstance, the model might tag the words with wrong tags but higher explaination, and those tags are reinforced by iterations since they are kept and might cause further wrong inference on the other word's tagging, degrading emission and transition estimates. As a result, the log-likelihood on the raw data increases but the tagging accuracy decreases. (2) There might exist mismatch between the supervised data and raw data, training on raw data may shift the parameter distribution away from the one trained on the supervised data. 
 
 ## Q4
 (a)
