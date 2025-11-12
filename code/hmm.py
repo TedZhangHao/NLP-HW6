@@ -17,7 +17,7 @@ from jaxtyping import Float
 
 from tqdm import tqdm # type: ignore
 import pickle
-
+import collections
 from integerize import Integerizer
 from corpus import BOS_TAG, BOS_WORD, EOS_TAG, EOS_WORD, Sentence, Tag, TaggedCorpus, IntegerizedSentence, Word
 
@@ -86,6 +86,8 @@ class HiddenMarkovModel:
         self.A_counts = None
         self.B_counts = None
         self.log_Z = None
+        # self.A_contrib_log = []
+        # self.B_contrib_log = []
         self.init_params()     # create and initialize model parameters
  
     def init_params(self) -> None:
@@ -179,7 +181,23 @@ class HiddenMarkovModel:
             self.A[self.eos_t, :] = 0
             self.A[self.bos_t, self.eos_t] = 0
         else:
-            pass
+            # unigram HMM (0th-order)
+            # Treat A as tag priors p_A(t_i), independent of previous tag.
+            # So we ignore A_counts[i, j] transitions, and only use tag frequency.
+            tag_totals = self.A_counts.sum(dim=1) + λ  # smooth each tag
+            tag_totals[self.bos_t] = 0  # BOS, EOS are structural zeroes
+            tag_totals[self.eos_t] = 0
+
+            # Normalize to make it a proper distribution p_A(t_i)
+            self.A = tag_totals / tag_totals.sum()
+
+            # For consistency with bigram shape, make A a matrix with identical rows
+            self.A = self.A.unsqueeze(0).repeat(self.k, 1)
+
+            # Structural zero enforcement
+            self.A[:, self.bos_t] = 0
+            self.A[self.eos_t, :] = 0
+            self.A[self.bos_t, self.eos_t] = 0
 
     def _zero_counts(self):
         """Set the expected counts to 0.  
@@ -441,6 +459,24 @@ class HiddenMarkovModel:
                 - logZ
             )
             xi = torch.exp(xi_log)
+            # if hasattr(self, "A_contrib_log"):
+            #     # save fractional transition counts
+            #     for s in range(self.k):
+            #         for t in range(self.k):
+            #             contrib = xi[s, t].item()
+            #             if contrib > 1e-5:
+            #                 prev_word = self.vocab[isent[j][0]]
+            #                 next_word = self.vocab[isent[j + 1][0]]
+            #                 self.A_contrib_log.append((prev_word, next_word, s, t, contrib))
+            # if hasattr(self, "B_contrib_log"):
+            #     for j in range(1, n - 1):
+            #         word_id, _ = isent[j]
+            #         if word_id < self.V:
+            #             gamma = torch.exp(alpha[j] + beta[j] - logZ)
+            #             for t in range(self.k):
+            #                 if gamma[t] > 1e-5:
+            #                     self.B_contrib_log.append((self.vocab[word_id], self.tagset[t], gamma[t].item()))
+
 
             # no transitions to BOS, from EOS
             xi[:, self.bos_t] = 0.0

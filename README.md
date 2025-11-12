@@ -85,11 +85,166 @@ Because using words from dev to construct V may introduce data leakage. This inf
 The iterations hurt the overall tagging accuracy. The tagging accuracy overall decreased from 88.63% to 87.035%; the accuracy on known words decreased from 93.06% to 91.39%; the accuracy on seen words increased from 44.11% to 45.79%; and the accuracy on novel words decreasd from 42.73% to 40.29%. 
 
 #### (e)
-It sometimes might help because model can learn new words from the context. Through semi-supervised learning, model witnessed some new words in the untagged sentences, and can infer the tag of such new words by the surrounding words that are learned during the supersed learning.
+It sometimes might help because model can learn new words from the context. Through semi-supervised learning, model witnessed some new words in the untagged sentences, and can infer the tag of such new words by the surrounding words that are learned during the supersed learning. And such inferrence might be aligned with the correct tagging.
+The fixed words are as follows, which are correctly tagged by the semi-supervised model but mistakenly tagged by the supervised model. 
+`[FIXED] strongly: ('strongly', 'D') → ('strongly', 'R') (gold=R)
+[FIXED] _OOV_: ('_OOV_', 'N') → ('_OOV_', 'V') (gold=V)
+[FIXED] cafeteria: ('cafeteria', 'I') → ('cafeteria', 'N') (gold=N)
+[FIXED] exclusive: ('exclusive', 'D') → ('exclusive', 'J') (gold=J)
+[FIXED] _OOV_: ('_OOV_', 'N') → ('_OOV_', 'V') (gold=V)
+[FIXED] up: ('up', 'I') → ('up', 'R') (gold=R)
+[FIXED] previously: ('previously', 'D') → ('previously', 'R') (gold=R)
+[FIXED] assumed: ('assumed', 'N') → ('assumed', 'V') (gold=V)
+[FIXED] offices: ('offices', 'V') → ('offices', 'N') (gold=N)
+[FIXED] packaging: ('packaging', 'D') → ('packaging', 'N') (gold=N)
+[FIXED] checks: ('checks', ',') → ('checks', 'N') (gold=N)
+[FIXED] checks: ('checks', 'P') → ('checks', 'N') (gold=N)
+[FIXED] 65: ('65', 'N') → ('65', 'C') (gold=C)
+[FIXED] _OOV_: ('_OOV_', 'V') → ('_OOV_', 'R') (gold=R)
+[FIXED] reckons: ('reckons', 'D') → ('reckons', 'V') (gold=V)
+[FIXED] out: ('out', 'I') → ('out', 'R') (gold=R)
+[FIXED] Latin: ('Latin', 'N') → ('Latin', 'J') (gold=J)
+[FIXED] _OOV_: ('_OOV_', 'N') → ('_OOV_', 'J') (gold=J)
+[FIXED] tells: ('tells', 'N') → ('tells', 'V') (gold=V)
+[FIXED] serious: ('serious', 'V') → ('serious', 'J') (gold=J)
+[FIXED] about: ('about', 'R') → ('about', 'I') (gold=I)
+[FIXED] 3.1: ('3.1', 'D') → ('3.1', 'C') (gold=C)
+[FIXED] back: ('back', 'R') → ('back', 'J') (gold=J)
+[FIXED] seat: ('seat', 'V') → ('seat', 'N') (gold=N)
+[FIXED] whose: ('whose', 'I') → ('whose', 'W') (gold=W)
+[FIXED] match: ('match', 'N') → ('match', 'V') (gold=V)
+[FIXED] vary: ('vary', 'N') → ('vary', 'V') (gold=V)
+[FIXED] advantages: ('advantages', 'V') → ('advantages', 'N') (gold=N)
+[FIXED] buys: ('buys', 'J') → ('buys', 'V') (gold=V)
+[FIXED] buys: ('buys', 'J') → ('buys', 'V') (gold=V)
+[FIXED] short-term: ('short-term', '$') → ('short-term', 'J') (gold=J)
+[FIXED] comfortable: ('comfortable', 'N') → ('comfortable', 'J') (gold=J)
+[FIXED] procedures: ('procedures', 'V') → ('procedures', 'N') (gold=N)
+[FIXED] Amex: ('Amex', 'C') → ('Amex', 'N') (gold=N)
+[FIXED] founded: ('founded', 'N') → ('founded', 'V') (gold=V)
+[FIXED] nothing: ('nothing', 'I') → ('nothing', 'N') (gold=N)
+[FIXED] Unfortunately: ('Unfortunately', 'N') → ('Unfortunately', 'R') (gold=R)
+[FIXED] Later: ('Later', 'N') → ('Later', 'R') (gold=R)
+[FIXED] Vietnam: ('Vietnam', 'V') → ('Vietnam', 'N') (gold=N)
+[FIXED] _OOV_: ('_OOV_', 'V') → ('_OOV_', 'R') (gold=R)
+[FIXED] sixth: ('sixth', 'N') → ('sixth', 'J') (gold=J)
+[FIXED] _OOV_: ('_OOV_', 'V') → ('_OOV_', 'N') (gold=N)
+[FIXED] newly: ('newly', 'N') → ('newly', 'R') (gold=R)
+[FIXED] _OOV_: ('_OOV_', 'N') → ('_OOV_', 'J') (gold=J)
+[FIXED] _OOV_: ('_OOV_', 'V') → ('_OOV_', 'N') (gold=N)
+[FIXED] province: ('province', ',') → ('province', 'N') (gold=N)
+[FIXED] entry: ('entry', 'V') → ('entry', 'N') (gold=N)
+[FIXED] Those: ('Those', 'N') → ('Those', 'D') (gold=D)
+[FIXED] Third: ('Third', 'N') → ('Third', 'J') (gold=J)
+[FIXED] Hunt: ('Hunt', 'J') → ('Hunt', 'N') (gold=N)
+[FIXED] silver: ('silver', 'J') → ('silver', 'N') (gold=N)
+[FIXED] Hunt: ('Hunt', 'W') → ('Hunt', 'N') (gold=N)
+[FIXED] asking: ('asking', 'I') → ('asking', 'V') (gold=V)
+[FIXED] money-market: ('money-market', 'N') → ('money-market', 'J') (gold=J)
+[FIXED] Malaysia: ('Malaysia', 'D') → ('Malaysia', 'N') (gold=N)
+[FIXED] _OOV_: ('_OOV_', 'N') → ('_OOV_', '$') (gold=$)
+[FIXED] _OOV_: ('_OOV_', 'N') → ('_OOV_', '$') (gold=$)
+[FIXED] abortion: ('abortion', 'P') → ('abortion', 'N') (gold=N)
+[FIXED] targets: ('targets', 'I') → ('targets', 'V') (gold=V)
+[FIXED] league: ('league', 'J') → ('league', 'N') (gold=N)
+[FIXED] more: ('more', 'J') → ('more', 'R') (gold=R)
+[FIXED] widens: ('widens', ',') → ('widens', 'V') (gold=V)
+[FIXED] Columbus: ('Columbus', 'V') → ('Columbus', 'N') (gold=N)
+[FIXED] Day: ('Day', 'T') → ('Day', 'N') (gold=N)
+[FIXED] oddly: ('oddly', 'V') → ('oddly', 'R') (gold=R)
+[FIXED] 52: ('52', 'N') → ('52', 'C') (gold=C)
+[FIXED] match: ('match', 'N') → ('match', 'V') (gold=V)
+[FIXED] unlikely: ('unlikely', 'N') → ('unlikely', 'J') (gold=J)
+[FIXED] behind: ('behind', 'N') → ('behind', 'R') (gold=R)
+[FIXED] 4.4: ('4.4', 'D') → ('4.4', 'C') (gold=C)
+[FIXED] fostered: ('fostered', 'I') → ('fostered', 'V') (gold=V)
+[FIXED] Fed: ('Fed', 'D') → ('Fed', 'N') (gold=N)
+[FIXED] centers: ('centers', ',') → ('centers', 'N') (gold=N)
+[FIXED] D'Arcy: ("D'Arcy", 'D') → ("D'Arcy", 'N') (gold=N)
+[FIXED] primarily: ('primarily', 'N') → ('primarily', 'R') (gold=R)
+[FIXED] sit: ('sit', 'N') → ('sit', 'V') (gold=V)
+[FIXED] _OOV_: ('_OOV_', '$') → ('_OOV_', 'C') (gold=C)
+[FIXED] Park: ('Park', 'V') → ('Park', 'N') (gold=N)
+[FIXED] fledgling: ('fledgling', 'D') → ('fledgling', 'N') (gold=N)
+[FIXED] water: ('water', 'D') → ('water', 'N') (gold=N)
+[FIXED] hit: ('hit', 'D') → ('hit', 'V') (gold=V)
+[FIXED] harder: ('harder', 'N') → ('harder', 'R') (gold=R)
+[FIXED] poor: ('poor', 'N') → ('poor', 'J') (gold=J)
+[FIXED] bid: ('bid', 'V') → ('bid', 'N') (gold=N)
+[FIXED] mark: ('mark', 'I') → ('mark', 'V') (gold=V)
+[FIXED] steel: ('steel', 'D') → ('steel', 'N') (gold=N)
+[FIXED] shipped: ('shipped', 'N') → ('shipped', 'V') (gold=V)
+[FIXED] steel: ('steel', 'D') → ('steel', 'N') (gold=N)
+[FIXED] structural: ('structural', 'C') → ('structural', 'J') (gold=J)
+[FIXED] steel: ('steel', 'D') → ('steel', 'N') (gold=N)
+[FIXED] steel: ('steel', 'D') → ('steel', 'N') (gold=N)
+[FIXED] damp: ('damp', '$') → ('damp', 'V') (gold=V)
+[FIXED] specialists: ('specialists', "'") → ('specialists', 'N') (gold=N)
+[FIXED] 13th: ('13th', 'N') → ('13th', 'J') (gold=J)
+[FIXED] that: ('that', 'I') → ('that', 'D') (gold=D)
+[FIXED] fear: ('fear', 'V') → ('fear', 'N') (gold=N)
+[FIXED] increases: ('increases', 'J') → ('increases', 'V') (gold=V)
+[FIXED] field: ('field', 'D') → ('field', 'N') (gold=N)
+[FIXED] smart: ('smart', 'V') → ('smart', 'J') (gold=J)
+[FIXED] leave: ('leave', 'N') → ('leave', 'V') (gold=V)
+[FIXED] _OOV_: ('_OOV_', 'N') → ('_OOV_', 'J') (gold=J)
+[FIXED] _OOV_: ('_OOV_', 'V') → ('_OOV_', 'N') (gold=N)
+[FIXED] 's: ("'s", 'P') → ("'s", 'V') (gold=V)
+[FIXED] Beach: ('Beach', ',') → ('Beach', 'N') (gold=N)
+[FIXED] Fed: ('Fed', 'D') → ('Fed', 'N') (gold=N)
+[FIXED] saw: ('saw', 'V') → ('saw', 'N') (gold=N)
+[FIXED] Unfortunately: ('Unfortunately', 'N') → ('Unfortunately', 'R') (gold=R)
+[FIXED] stock-market: ('stock-market', 'C') → ('stock-market', 'N') (gold=N)
+[FIXED] drugs: ('drugs', 'C') → ('drugs', 'N') (gold=N)
+[FIXED] junk-bond: ('junk-bond', 'N') → ('junk-bond', 'J') (gold=J)
+[FIXED] high-yield: ('high-yield', 'N') → ('high-yield', 'J') (gold=J)
+[FIXED] junk-bond: ('junk-bond', 'N') → ('junk-bond', 'J') (gold=J)
+[FIXED] junk-bond: ('junk-bond', 'N') → ('junk-bond', 'J') (gold=J)
+[FIXED] portfolios: ('portfolios', ',') → ('portfolios', 'N') (gold=N)
+[FIXED] Partnership: ('Partnership', 'I') → ('Partnership', 'N') (gold=N)
+[FIXED] 98: ('98', 'N') → ('98', 'C') (gold=C)
+[FIXED] out: ('out', 'I') → ('out', 'R') (gold=R)
+[FIXED] structured: ('structured', ',') → ('structured', 'V') (gold=V)
+[FIXED] 111: ('111', 'N') → ('111', 'C') (gold=C)
+`
+
+To explain this more deeper, I implemented functions in the backward function to save the fractional emission and transition counts for each token. Specifically, For each position $j$ in every raw sentence, the emission responsibilities $p(t_j=t|sentence)$ were stored as tuples (word, tag, p). For every adjacent pair of positions, the fractional transition responsibilities p(t_j=s,t_j+1=t|sentence) were recorded as (prev_word, next_word, prev_tag, next_tag, p'). These logs capture how corpus contributed to the parameter updates of A and B. After training, we can trace the reason that fix the tagging. For example, the tag of 'tells' is fixed from 'N' to 'V' with the context 'violinist tells', 'investor tells', and 'expert tells' that contributed 3, 0.447, and 0.035 fractional counts in respective.
+
+`Contextual contributors for word 'tells' (V):
+  (,→V) in ', tells'  contrib=3.614
+  (N→V) in 'violinist tells'  contrib=3.000
+  (:→V) in '-- tells'  contrib=3.000
+  (N→V) in 'investor tells'  contrib=0.447
+  (N→V) in 'expert tells'  contrib=0.177
+  (T→V) in 'expert tells'  contrib=0.035
+  (,→V) in 'expert tells'  contrib=0.031
+  (P→V) in 'expert tells'  contrib=0.027
+  (V→V) in 'expert tells'  contrib=0.022
+  (R→V) in 'expert tells'  contrib=0.020`
+
+Another example is that the tag of 'founded' fixed from 'N' to 'V' thanks to 'son founded' with contribution of 3 fractional counts.
+
+
 
 
 #### (f)
-Semi-supervied learning dose not always help is because (1) as iteration goes on, the tagging scheme of model tends to favor the log-likelihood object, which only care which tag being used can best explain the data regardless of the correctness. In such circumstance, the model might tag the words with wrong tags but higher explaination, and those tags are reinforced by iterations since they are kept and might cause further wrong inference on the other word's tagging, degrading emission and transition estimates. As a result, the log-likelihood on the raw data increases but the tagging accuracy decreases. (2) There might exist mismatch between the supervised data and raw data, training on raw data may shift the parameter distribution away from the one trained on the supervised data. 
+Semi-supervied learning dose not always help is because (1) as iteration goes on, the tagging scheme of model tends to favor the incomplete-data log-likelihood object, which only care which tag being used can best explain the data regardless of the correctness. In such circumstance, the model might tag the words with wrong tags but higher explaination, and those tags are reinforced by iterations since they are kept and might cause further wrong inference on the other word's tagging, degrading emission and transition estimates. As a result, the log-likelihood on the raw data increases but the tagging accuracy decreases. (2) There might exist mismatch between the supervised data and raw data, training on raw data may shift the parameter distribution away from the one trained on the supervised data. (3) The ratio of supervised data amount to raw data amount also impact the model's accuracy on tagging. If the supervised data is very littke compared to the raw data amount, then the parameter might be drastically shifted and the learned knowledge cannot resist the change from the raw data and be covered ruthlessly.
+
+#### (g)
+
+#### (h)
+One stage:
+1. only enraw: all: 9.412%, known: 10.000%, seen: 4.377%, novel: 2.906% / Cross-entropy: 10.8643 nats (= perplexity 52278.880)
+2. ensup+enraw: all: 87.110%, known: 91.452%, seen: 43.771%, novel: 41.480% / Cross-entropy: 7.4819 nats (= perplexity 1775.550)
+3. ensup+ensup+ensup+enraw: all: 90.208%, known: 94.913%, seen: 42.929%, novel: 40.885% / 7.1453 nats (= perplexity 1268.093)
+Two stages:
+1. stage1: enraw stage2: ensup: all: 88.663%, known: 93.059%, seen: 44.108%, novel: 42.734% / Cross-entropy: 7.4505 nats (= perplexity 1720.761)
+2. stage1: ensup stage2: ensup: all: 87.035%, known: 91.397%, seen: 45.791%, novel: 40.291% /  Cross-entropy: 7.3486 nats (= perplexity 1553.994) (Original one)
+
+Baed on the result, ensuo+enraw, ensup+ensup+ensup+enraw, and enraw->ensup seem to work. 
+1. ensup+enraw: during the training, the accuracy was improved at first and then dropped, which indicating that the incomplete-data log-likelihood dominated while iteration increases. However, it is still better than our original approach. This might because that the model trained simultaniously with both data is less likely to be pulled by the log-likelihood of raw data.
+2. ensup+ensup+ensup+enraw：the accuracy pattern is similar to ensup+enraw, but the accuracy is much higher and the cross-entropy is much lower. This indicates that by weighting supervised data more heavily, we can suppress the drift from correct tag to incomplete-data log-likelihood and force the model parameter more explainable of the gold label rather than the raw data distribution.
+3. enraw->ensup: the accuracy is also higher than the original approach, and this is because that doing supervised learning after unsupervised learning makes model learn the distribution of the raw data and then provide supervision signals that correctify the tagging, which is more stable since we are leading the model towards right direction after it learns the basic knowledge of data rather than reinforcing the incomplete-data log-likelihood as we did in the original approach.
 
 ## Q4
 (a)
