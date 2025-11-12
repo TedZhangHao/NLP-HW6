@@ -107,9 +107,6 @@ The experiments results as below:
 | HMM (Posterior + Hard constraints)        |        **91.682%** |
 
 
-	​
-
-P(y∣x), posterior decoding independently chooses for each word the tag with the highest marginal posterior probability:
 ## Q4
 (a)
 When trained on the same supervised corpus (ensup) with different parameters,
@@ -123,7 +120,10 @@ The CRF, however, cannot use enraw at all, since its conditional objective $logp
 Thus, its results remain unchanged.
 The iterations of semi-supervised training can initially help but often end up hurting overall tagging accuracy after a few rounds since the model will more rely on log-likelihood of the raw data, which helps model to explain words regardless of the actual tags. For known words, the accuracy stays the same since their emission prbabilities are well learnt from the supervision data. For seen words, the accuracy might be silghtly improved at first due to the extra contexts, then drop if the log-likelihood is reinforced. For the novel words, they might be slightly improved at first since they could be referrenced by the nearby known words, but they might be even worse as the iteration goes on than seen words since there is little evidence for them, and log-likelihood might easily make the tag to explain them in other direction far away from the correct tags.
 
-
+## Q5
+I once ate 5 ice creams in one day during a summer holiday.
+It was very hot, and they kept handing out free samples.
+I didn’t get sick, but I didn’t want to see ice cream again for a week!
 
 
 
