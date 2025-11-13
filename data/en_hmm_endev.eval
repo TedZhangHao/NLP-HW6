@@ -7,3 +7,7 @@ Wrote tagging to data/en_hmm_endev.output
 Cross-entropy: 8.2083 nats (= perplexity 3671.426)
 Tagging accuracy: all: 92.931%, known: 96.818%, seen: nan%, novel: 52.657%
 ===
+Wrote tagging to data/en_hmm_endev.output
+Tagging accuracy: all: 88.663%, known: 91.763%, seen: nan%, novel: 42.734%
+Cross-entropy: 7.5995 nats (= perplexity 1997.183)
+===

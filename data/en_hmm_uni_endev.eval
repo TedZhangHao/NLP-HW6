@@ -1,0 +1,8 @@
+Wrote tagging to data/en_hmm_uni_endev.output
+Tagging accuracy: all: 91.210%, known: 93.532%, seen: nan%, novel: 56.803%
+Cross-entropy: 9.0402 nats (= perplexity 8435.481)
+===
+Wrote posterior-decoded tagging to data/en_hmm_uni_endev.output
+Tagging accuracy: all: 91.210%, known: 93.532%, seen: nan%, novel: 56.803%
+Tagging accuracy (posterior): 91.210%
+===

@@ -87,7 +87,7 @@ The iterations hurt the overall tagging accuracy. The tagging accuracy overall d
 #### (e)
 It sometimes might help because model can learn new words from the context. Through semi-supervised learning, model witnessed some new words in the untagged sentences, and can infer the tag of such new words by the surrounding words that are learned during the supersed learning. And such inferrence might be aligned with the correct tagging.
 The fixed words are as follows, which are correctly tagged by the semi-supervised model but mistakenly tagged by the supervised model. 
-`[FIXED] strongly: ('strongly', 'D') → ('strongly', 'R') (gold=R)
+[FIXED] strongly: ('strongly', 'D') → ('strongly', 'R') (gold=R)
 [FIXED] _OOV_: ('_OOV_', 'N') → ('_OOV_', 'V') (gold=V)
 [FIXED] cafeteria: ('cafeteria', 'I') → ('cafeteria', 'N') (gold=N)
 [FIXED] exclusive: ('exclusive', 'D') → ('exclusive', 'J') (gold=J)
@@ -117,7 +117,6 @@ The fixed words are as follows, which are correctly tagged by the semi-supervise
 [FIXED] advantages: ('advantages', 'V') → ('advantages', 'N') (gold=N)
 [FIXED] buys: ('buys', 'J') → ('buys', 'V') (gold=V)
 [FIXED] buys: ('buys', 'J') → ('buys', 'V') (gold=V)
-[FIXED] short-term: ('short-term', '$') → ('short-term', 'J') (gold=J)
 [FIXED] comfortable: ('comfortable', 'N') → ('comfortable', 'J') (gold=J)
 [FIXED] procedures: ('procedures', 'V') → ('procedures', 'N') (gold=N)
 [FIXED] Amex: ('Amex', 'C') → ('Amex', 'N') (gold=N)
@@ -142,8 +141,6 @@ The fixed words are as follows, which are correctly tagged by the semi-supervise
 [FIXED] asking: ('asking', 'I') → ('asking', 'V') (gold=V)
 [FIXED] money-market: ('money-market', 'N') → ('money-market', 'J') (gold=J)
 [FIXED] Malaysia: ('Malaysia', 'D') → ('Malaysia', 'N') (gold=N)
-[FIXED] _OOV_: ('_OOV_', 'N') → ('_OOV_', '$') (gold=$)
-[FIXED] _OOV_: ('_OOV_', 'N') → ('_OOV_', '$') (gold=$)
 [FIXED] abortion: ('abortion', 'P') → ('abortion', 'N') (gold=N)
 [FIXED] targets: ('targets', 'I') → ('targets', 'V') (gold=V)
 [FIXED] league: ('league', 'J') → ('league', 'N') (gold=N)
@@ -163,7 +160,6 @@ The fixed words are as follows, which are correctly tagged by the semi-supervise
 [FIXED] D'Arcy: ("D'Arcy", 'D') → ("D'Arcy", 'N') (gold=N)
 [FIXED] primarily: ('primarily', 'N') → ('primarily', 'R') (gold=R)
 [FIXED] sit: ('sit', 'N') → ('sit', 'V') (gold=V)
-[FIXED] _OOV_: ('_OOV_', '$') → ('_OOV_', 'C') (gold=C)
 [FIXED] Park: ('Park', 'V') → ('Park', 'N') (gold=N)
 [FIXED] fledgling: ('fledgling', 'D') → ('fledgling', 'N') (gold=N)
 [FIXED] water: ('water', 'D') → ('water', 'N') (gold=N)
@@ -206,11 +202,11 @@ The fixed words are as follows, which are correctly tagged by the semi-supervise
 [FIXED] out: ('out', 'I') → ('out', 'R') (gold=R)
 [FIXED] structured: ('structured', ',') → ('structured', 'V') (gold=V)
 [FIXED] 111: ('111', 'N') → ('111', 'C') (gold=C)
-`
+
 
 To explain this more deeper, I implemented functions in the backward function to save the fractional emission and transition counts for each token. Specifically, For each position $j$ in every raw sentence, the emission responsibilities $p(t_j=t|sentence)$ were stored as tuples (word, tag, p). For every adjacent pair of positions, the fractional transition responsibilities p(t_j=s,t_j+1=t|sentence) were recorded as (prev_word, next_word, prev_tag, next_tag, p'). These logs capture how corpus contributed to the parameter updates of A and B. After training, we can trace the reason that fix the tagging. For example, the tag of 'tells' is fixed from 'N' to 'V' with the context 'violinist tells', 'investor tells', and 'expert tells' that contributed 3, 0.447, and 0.035 fractional counts in respective.
 
-`Contextual contributors for word 'tells' (V):
+Contextual contributors for word 'tells' (V):
   (,→V) in ', tells'  contrib=3.614
   (N→V) in 'violinist tells'  contrib=3.000
   (:→V) in '-- tells'  contrib=3.000
@@ -231,6 +227,16 @@ Another example is that the tag of 'founded' fixed from 'N' to 'V' thanks to 'so
 Semi-supervied learning dose not always help is because (1) as iteration goes on, the tagging scheme of model tends to favor the incomplete-data log-likelihood object, which only care which tag being used can best explain the data regardless of the correctness. In such circumstance, the model might tag the words with wrong tags but higher explaination, and those tags are reinforced by iterations since they are kept and might cause further wrong inference on the other word's tagging, degrading emission and transition estimates. As a result, the log-likelihood on the raw data increases but the tagging accuracy decreases. (2) There might exist mismatch between the supervised data and raw data, training on raw data may shift the parameter distribution away from the one trained on the supervised data. (3) The ratio of supervised data amount to raw data amount also impact the model's accuracy on tagging. If the supervised data is very littke compared to the raw data amount, then the parameter might be drastically shifted and the learned knowledge cannot resist the change from the raw data and be covered ruthlessly.
 
 #### (g)
+The performances on endev of bigram and unigram HMM with different combination of training sets are as shown in the table. 
+|              Model                 |  Tagging acc. (all) | CE |
+| ----------------------------------------- | ----------------- |--|
+| Bigram HMM - ensup|        88.663% | 7.5995|
+| Unigram HMM - ensup               |  85.544% |     8.7939 | 
+| Bigram HMM - ensup+enraw        |       87.110%% | 7.4819  |
+| Uigram HMM - ensup+enraw        |   85.340% |     8.7730 |
+
+When only doing supervised learning on ensup, bigram HMM has higher tagging accuracy and lower cross entropy than unigram HMM. The result that Bigram HHM performs better than Unigram in terms of accuracy and cross entropy does not change after using enraw. However, both performances of two models become worse. However unigram HMM has smaller cross entropy compared to only using ensup. 
+
 
 #### (h)
 One stage:
@@ -242,7 +248,7 @@ Two stages:
 2. stage1: ensup stage2: ensup: all: 87.035%, known: 91.397%, seen: 45.791%, novel: 40.291% /  Cross-entropy: 7.3486 nats (= perplexity 1553.994) (Original one)
 
 Baed on the result, ensuo+enraw, ensup+ensup+ensup+enraw, and enraw->ensup seem to work. 
-1. ensup+enraw: during the training, the accuracy was improved at first and then dropped, which indicating that the incomplete-data log-likelihood dominated while iteration increases. However, it is still better than our original approach. This might because that the model trained simultaniously with both data is less likely to be pulled by the log-likelihood of raw data.
+1. ensup+enraw: during the training, the accuracy was improved at first and then dropped, which indicating that the incomplete-data log-likelihood dominated while iteration increases. However, it is still slightly better than our original approach. This might because that the model trained simultaniously with both data is less likely to be pulled by the log-likelihood of raw data.
 2. ensup+ensup+ensup+enraw：the accuracy pattern is similar to ensup+enraw, but the accuracy is much higher and the cross-entropy is much lower. This indicates that by weighting supervised data more heavily, we can suppress the drift from correct tag to incomplete-data log-likelihood and force the model parameter more explainable of the gold label rather than the raw data distribution.
 3. enraw->ensup: the accuracy is also higher than the original approach, and this is because that doing supervised learning after unsupervised learning makes model learn the distribution of the raw data and then provide supervision signals that correctify the tagging, which is more stable since we are leading the model towards right direction after it learns the basic knowledge of data rather than reinforcing the incomplete-data log-likelihood as we did in the original approach.
 

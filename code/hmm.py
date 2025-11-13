@@ -181,23 +181,41 @@ class HiddenMarkovModel:
             self.A[self.eos_t, :] = 0
             self.A[self.bos_t, self.eos_t] = 0
         else:
-            # unigram HMM (0th-order)
-            # Treat A as tag priors p_A(t_i), independent of previous tag.
-            # So we ignore A_counts[i, j] transitions, and only use tag frequency.
-            tag_totals = self.A_counts.sum(dim=1) + λ  # smooth each tag
-            tag_totals[self.bos_t] = 0  # BOS, EOS are structural zeroes
-            tag_totals[self.eos_t] = 0
+            # # unigram HMM (0th-order)
+            # # Treat A as tag priors p_A(t_i), independent of previous tag.
+            # # So we ignore A_counts[i, j] transitions, and only use tag frequency.
+            # tag_totals = self.A_counts.sum(dim=1) + λ  # smooth each tag
+            # tag_totals[self.bos_t] = 0  # BOS, EOS are structural zeroes
+            # tag_totals[self.eos_t] = 0
 
-            # Normalize to make it a proper distribution p_A(t_i)
-            self.A = tag_totals / tag_totals.sum()
+            # # Normalize to make it a proper distribution p_A(t_i)
+            # self.A = tag_totals / tag_totals.sum()
 
-            # For consistency with bigram shape, make A a matrix with identical rows
-            self.A = self.A.unsqueeze(0).repeat(self.k, 1)
+            # # For consistency with bigram shape, make A a matrix with identical rows
+            # self.A = self.A.unsqueeze(0).repeat(self.k, 1)
 
-            # Structural zero enforcement
-            self.A[:, self.bos_t] = 0
-            self.A[self.eos_t, :] = 0
-            self.A[self.bos_t, self.eos_t] = 0
+            # # Structural zero enforcement
+            # self.A[:, self.bos_t] = 0
+            # self.A[self.eos_t, :] = 0
+            # self.A[self.bos_t, self.eos_t] = 0
+                    # unigram：p(t | s) 不依赖 s
+            # 用每一列的总计数当作“tag t 的次数”
+            col_sums = self.A_counts.sum(dim=0)      # (k,)
+            col_sums[self.bos_t] = 0.0          # 不允许出现 BOS
+            col_sums[self.eos_t] = 0.0          # 不允许 EOS 作为普通 tag
+            total = col_sums.sum()
+            if total == 0:
+                # 没有有效转移，就退回均匀分布（除 BOS/EOS）
+                base = torch.ones(self.k)
+                base[self.bos_t] = 0.0
+                base[self.eos_t] = 0.0
+                base = base / base.sum()
+            else:
+                base = col_sums / total  # (k,)
+            # 构造 bigram 矩阵，每行都相同
+            self.A = base.unsqueeze(0).repeat(self.k, 1)
+            self.A[:, self.bos_t] = 0.0
+            self.A[self.eos_t, :] = 0.0
 
     def _zero_counts(self):
         """Set the expected counts to 0.  
